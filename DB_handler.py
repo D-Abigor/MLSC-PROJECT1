@@ -71,10 +71,3 @@ async def get_access_level(session_id):
             return True, row["access"]
         else:
             return False, "could not get access level"
-
-
-
-
-async def main():
-    await init_conn_pool()
-    asyncio.create_task(session_cleaner())
