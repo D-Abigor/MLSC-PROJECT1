@@ -1,9 +1,16 @@
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-import requests
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
+import DB_handler
+import asyncio
+from passlib.hash import bcrypt
+
+
+
+
+asyncio.run(DB_handler.main())     # postgres helper init
+
 
 
 app = FastAPI()
@@ -18,17 +25,23 @@ app.add_middleware(
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    id = request.cookies.get("session_id")
-    status = checkSessionValidity(id)
+
     public_endpoint = ["/", "/userlogin", "/adminlogin", "/register", "/invalid"]
-    if request.url.path.startswith(tuple(public_endpoint)):
+    if request.url.path in public_endpoint:
         return await call_next(request)
     
-    if not status:
+    id = request.cookies.get("session_id")
+    if not id:
         return RedirectResponse("/invalid")
     
-    response = await call_next(request)
-    return response
+    status = await DB_handler.validate_session_id(id)
+
+    if status:
+        response = await call_next(request)
+        return response
+    else:
+        return RedirectResponse("/invalid")
+    
 
 
 
@@ -57,31 +70,49 @@ async def invalid(request: Request):
 
 @app.post("/userlogin")                         # request = {"username" : <username>, "password": <password>}
 async def userlogin_post(request: Request):
-    pass
+    data = request.json()
+    response = JSONResponse({"message": "Logged in"})
+    response.set_cookie(key="session_id", value=createSessionID(data.get("username")), httponly=True)
+    return response
 
 @app.post("/adminlogin")                        # request = {"username" : <username>, "password": <password>}
 async def adminlogin_post(request: Request):
-    pass
+    data = request.json()
+    response = JSONResponse({"message": "Logged in"})
+    response.set_cookie(key="session_id", value=createSessionID(data.get("username")), httponly=True)
+    return response
 
-@app.post("/register")                          # request = {"emailid": <email>, "username" : <username>, "password": <password>}
+@app.post("/register")                          # request = {"emailid": <email>, "username" : <username>, "password": <password>, "access_level": <access_level>}
 async def register_post(request: Request):
-    pass
+    data = request.json()
+    
+    status, response = await DB_handler.register_user(data.get("emailid"), data.get("username"), hashpass(data.get("password")), data.get("type"))
+
+    return JSONResponse({"message": response})
+
 
 
 
 
 @app.get("/home")
 async def gethome(request: Request):
+   
    id = request.cookies.get("session_id")
-   role = getrole(id)
-   if role == "admin":
-       package = adminhome()
-       return package
-   elif role == "user":
-       package = userhome()
-       return package
-    
+   status, role = getrole(id)
 
+   if status:
+        if role == "admin":
+            package = adminhome()
+            return package
+        elif role == "user":
+            package = userhome()
+            return package
+   else:
+       print(role)
+
+    
+def createSessionID(username):
+    pass
 
 def checkSessionValidity(id):
     pass
@@ -94,3 +125,11 @@ def userhome():
 
 def getrole():
     pass
+
+
+def createNewUser():
+    pass
+
+def hashpass(password):
+    hashed = bcrypt.using(rounds=12).hash(password)
+    return hashed
