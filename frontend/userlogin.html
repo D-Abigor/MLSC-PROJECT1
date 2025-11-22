@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>User Login</title></head>
+<body>
+    <h2>User Login</h2>
+    <form id="ulogin">
+        <input name="username" placeholder="Username"><br>
+        <input name="password" type="password" placeholder="Password"><br>
+        <button type="submit">Login</button>
+    </form>
+    <script>
+        document.getElementById("ulogin").addEventListener("submit", async (e)=>{
+            e.preventDefault();
+            let data = {
+                username: e.target.username.value,
+                password: e.target.password.value
+            };
+            await fetch("/userlogin", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
+            window.location.href = "/home";
+        });
+    </script>
+</body>
+</html>

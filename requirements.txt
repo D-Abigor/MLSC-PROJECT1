@@ -1,0 +1,7 @@
+asyncpg
+asyncio
+dotenv
+fastapi
+passlib
+contextlib
+bcrypt==4.0.1

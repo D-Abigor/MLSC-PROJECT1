@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin Home</title></head>
+<body>
+    <h1>Admin Panel</h1>
+    <table border="1">
+        <tr><th>ID</th><th>Email</th><th>Username</th><th>password</th><th>Access</th></tr>
+        {% for u in users %}
+            <tr>
+                <td>{{u.id}}</td>
+                <td>{{u.email}}</td>
+                <td>{{u.username}}</td>
+                <td>{{u.password_hash}}</td>
+                <td>{{u.access}}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    <a href="/">go back login</a>
+    <a href="/logout">logout</a>
+</body>
+</html>
