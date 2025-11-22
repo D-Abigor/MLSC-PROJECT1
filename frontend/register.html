@@ -23,8 +23,8 @@ password: e.target.password.value,
 type: e.target.type.value
 };
 let res = await fetch("/register", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
-alert("Registration submitted");
-window.location.href = "/";
+let html = await res.text();
+document.documentElement.innerHTML = html;
 });
 </script>
 </body>

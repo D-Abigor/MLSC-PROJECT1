@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 import DB_handler
@@ -39,7 +39,7 @@ async def auth_middleware(request: Request, call_next):
     if verbose:
         print("cookie detected by middleware:", id)
     if not id:
-        return RedirectResponse("/invalid")
+        return pages.TemplateResponse("invalid.html", {"request": request, "error":"invalid credentials"})
     
     status = await DB_handler.validate_session_id(id)
 
@@ -53,11 +53,11 @@ async def auth_middleware(request: Request, call_next):
     else:
         if verbose:
             print("middleware cookie validation fail")
-        return RedirectResponse("/invalid")
+        return pages.TemplateResponse("invalid.html", {"request": request, "error":"invalid session id"})
     
 
 
-
+#---------------------------------------GET ENDPOINTS-------------------------------#
 
 @app.get("/")
 async def landing(request: Request):
@@ -75,61 +75,23 @@ async def adminlogin_get(request: Request):
 async def register_get(request: Request):
     return pages.TemplateResponse("register.html", {"request": request})
 
-
+'''
 @app.get("/invalid")
 async def invalid(request: Request):
-    return pages.TemplateResponse("invalid.html", {"request": request})
+    return pages.TemplateResponse("invalid.html", {"request": request})'''
 
 @app.get("/logout")
 async def logout(request: Request):
     session_id = request.cookies.get("session_id")
-    await DB_handler.delete_session_id(session_id)            # troubleshoot
-
+    await DB_handler.delete_session_id(session_id)
     response = RedirectResponse("/", status_code=303)
     response.delete_cookie("session_id")
     return response
 
-
-@app.post("/userlogin")                         
-async def userlogin_post(request: Request):
-    data = await request.json()
-    status, session_id = await DB_handler.get_session_id(data.get("username"), data.get("password"))
-    if status!=True:
-        return RedirectResponse("/invalid")
-    
-    redirect = RedirectResponse(url="/home", status_code=303)
-    redirect.set_cookie(key="session_id", value=str(session_id), httponly=True)
-    redirect.set_cookie(key="origin", value="userlogin")
-    return redirect
-
-@app.post("/adminlogin")
-async def adminlogin_post(request: Request):
-    data = await request.json()
-
-    status, session_id = await DB_handler.get_session_id(data.get("username"), data.get("password"))
-    if verbose:
-        print(status, session_id)
-    if status!=True:
-        return RedirectResponse("/invalid")
-    
-    redirect = RedirectResponse(url="/home", status_code=303)
-    redirect.set_cookie(key="session_id", value=str(session_id), httponly=True)
-    redirect.set_cookie(key="origin", value="adminlogin")
-    return redirect
-
-@app.post("/register")                   
-async def register_post(request: Request):
-    data = await request.json()
-    status, response = await DB_handler.register_user(data.get("emailid"), data.get("username"), data.get("password"), data.get("type"))
-
-    return JSONResponse({"message": response})
-
-
-
 @app.get("/home")
 async def gethome(request: Request):
    if verbose:
-       print("at home")                         #####################################
+       print("at home")              
 
    id = request.cookies.get("session_id")
    if verbose:
@@ -147,12 +109,53 @@ async def gethome(request: Request):
             package = await adminhome(request)
             if verbose:
                 print("package", package)
-            return package
         elif role == "user" and request.cookies.get("origin") == "userlogin":
             package = await userhome(request)
-            return package
+        return package
    else:
-       return {"error": role}
+       return pages.TemplateResponse("invalid.html", {"request": request, "error":role})
+
+
+#---------------------------------------POST ENDPOINTS-------------------------------#
+
+@app.post("/userlogin")                         
+async def userlogin_post(request: Request):
+    data = await request.json()
+    status, session_id = await DB_handler.get_session_id(data.get("username"), data.get("password"))
+    if status!=True:
+        return pages.TemplateResponse("invalid.html", {"request": request, "error":"could not get session ID"})
+    
+    redirect = RedirectResponse(url="/home", status_code=303)
+    redirect.set_cookie(key="session_id", value=str(session_id), httponly=True)
+    redirect.set_cookie(key="origin", value="userlogin")
+    return redirect
+
+@app.post("/adminlogin")
+async def adminlogin_post(request: Request):
+    data = await request.json()
+
+    status, session_id = await DB_handler.get_session_id(data.get("username"), data.get("password"))
+    if verbose:
+        print(status, session_id)
+    if status!=True:
+        return pages.TemplateResponse("invalid.html", {"request": request, "error":"could not get session ID"})
+    
+    redirect = RedirectResponse(url="/home", status_code=303)
+    redirect.set_cookie(key="session_id", value=str(session_id), httponly=True)
+    redirect.set_cookie(key="origin", value="adminlogin")
+    return redirect
+
+@app.post("/register")                   
+async def register_post(request: Request):
+    data = await request.json()
+    status, response = await DB_handler.register_user(data.get("emailid"), data.get("username"), data.get("password"), data.get("type"))
+
+    return pages.TemplateResponse("invalid.html", {"request": request, "error":response})
+
+
+
+
+#---------------FUNCTIONS TO SEPERATE /HOME ENDPOINT ACCORDING TO ACCESS LEVEL------------------#
 
 async def adminhome(request: Request):
     rows = await DB_handler.get_admin_landing()

@@ -9,31 +9,33 @@ verbose = True
 load_dotenv()
 
 conn_pool = None
+tokenCleanFrequency = 180                           # variable controlling frequency of expired session token cleaner
+bcryptCost = 12                                     # bcrypt hashing compute cost
+
 
 async def init_conn_pool_and_cleaner():
     global conn_pool
     conn_pool = await asyncpg.create_pool(
-        user=os.getenv("PSQUSER"),
+        user=os.getenv("PSQUSER"),                      
         password=os.getenv("PSQPASS"),
-        database="mlscproject1",
+        database=os.getenv("DBNAME"),
         host = "localhost",
         port = 9112
     )
-    asyncio.create_task(session_cleaner())
+    asyncio.create_task(session_cleaner())              # expired token cleaning function run asynchronously
 
-async def get_admin_landing():
+async def get_admin_landing():                          # function to get data to be displayed in the /home page of admin user from psql
     async with conn_pool.acquire() as connection:
         rows = await connection.fetch("SELECT * FROM users;")
         return rows
 
 
-async def get_session_id(username,password):
+async def get_session_id(username,password):            # function that gets new/active session token from psql
     async with conn_pool.acquire() as connection:
         passhash = await connection.fetchrow("SELECT id,username,password_hash FROM users WHERE username = $1;", username)
 
         if passhash:
             if bcrypt.verify(password, passhash["password_hash"]):
-                ## add check for checking exsiting active tokens
                 existing_token = await connection.fetchrow("SELECT session_id FROM sessions WHERE user_id = $1;", passhash["id"])
                 if existing_token:
                     return True,existing_token["session_id"]
@@ -42,7 +44,7 @@ async def get_session_id(username,password):
         else:
             return False,"invalid credentials"
 
-async def validate_session_id(sessionid):
+async def validate_session_id(sessionid):               # validating a submitted session_id to check for expiry and existence
     async with conn_pool.acquire() as connection:
         rows = await connection.fetchrow("SELECT session_id FROM sessions WHERE session_id = $1 AND expires_at > NOW();", sessionid)
     if rows:
@@ -50,11 +52,12 @@ async def validate_session_id(sessionid):
     else:
         return False
 
+
 async def session_cleaner():
     while True:
         async with conn_pool.acquire() as connection:
             await connection.execute("DELETE FROM sessions WHERE expires_at < NOW();")
-        await asyncio.sleep(300)
+        await asyncio.sleep(tokenCleanFrequency)
     
 
 async def register_user(email,username,password,access_level):
@@ -83,8 +86,11 @@ async def delete_session_id(session_id):
     async with conn_pool.acquire() as connection:
         await connection.execute("DELETE FROM sessions WHERE session_id = $1", session_id)
 
-async def hashpass(password):
-    hashed = await asyncio.to_thread(bcrypt.using(rounds=12).hash, str(password))
+
+# hashing password with bcrypt to store passwords securely on the DB
+
+async def hashpass(password):                                                                           
+    hashed = await asyncio.to_thread(bcrypt.using(rounds=bcryptCost).hash, str(password))
     return hashed
 
 
