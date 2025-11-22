@@ -34,6 +34,9 @@ async def get_session_id(username,password):
         if passhash:
             if bcrypt.verify(password, passhash["password_hash"]):
                 ## add check for checking exsiting active tokens
+                existing_token = await connection.fetchrow("SELECT session_id FROM sessions WHERE user_id = $1;", passhash["id"])
+                if existing_token:
+                    return True,existing_token["session_id"]
                 session_id = await connection.fetchrow("INSERT INTO sessions (user_id, expires_at) VALUES ($1, NOW() + INTERVAL '1 day') RETURNING session_id;",passhash['id'] )
                 return True,session_id["session_id"]
         else:

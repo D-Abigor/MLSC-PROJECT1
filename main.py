@@ -83,7 +83,7 @@ async def invalid(request: Request):
 @app.get("/logout")
 async def logout(request: Request):
     session_id = request.cookies.get("session_id")
-    DB_handler.delete_session_id(session_id)
+    await DB_handler.delete_session_id(session_id)            # troubleshoot
 
     response = RedirectResponse("/", status_code=303)
     response.delete_cookie("session_id")
