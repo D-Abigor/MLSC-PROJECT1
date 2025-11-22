@@ -3,5 +3,9 @@ asyncio
 dotenv
 fastapi
 passlib
+bcrypt
 contextlib
 bcrypt==4.0.1
+asyncpg
+uvicorn
+contextlib
