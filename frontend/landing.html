@@ -1,12 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Landing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            display: block;
+            margin: 12px auto;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+            transition: 0.25s;
+            width: 200px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: white;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome</h1>
-    <a href="/userlogin">User Login</a><br>
-    <a href="/adminlogin">Admin Login</a><br>
-    <a href="/register">Register</a>
+    <div class="container">
+        <h1>Welcome</h1>
+        <a href="/userlogin" class="btn">User Login</a>
+        <a href="/adminlogin" class="btn">Admin Login</a>
+        <a href="/register" class="btn">Register</a>
+    </div>
 </body>
 </html>

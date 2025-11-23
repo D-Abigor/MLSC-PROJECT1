@@ -30,7 +30,7 @@ app.add_middleware(
 async def auth_middleware(request: Request, call_next):
     if verbose:
         print("executing middleware") 
-    public_endpoint = ["/", "/userlogin", "/adminlogin", "/register", "/invalid"]
+    public_endpoint = ["/", "/userlogin", "/adminlogin", "/register", "/invalid", "/docs", "/redoc", "/docs/oauth2-redirect", "/openapi.json", "/checkavailability"]
 
     if request.url.path in public_endpoint:
         return await call_next(request)
@@ -75,10 +75,12 @@ async def adminlogin_get(request: Request):
 async def register_get(request: Request):
     return pages.TemplateResponse("register.html", {"request": request})
 
-'''
-@app.get("/invalid")
-async def invalid(request: Request):
-    return pages.TemplateResponse("invalid.html", {"request": request})'''
+@app.get("/checkavailability")
+async def check_availability(username: str):
+    print("checking availability")
+    response = await DB_handler.check_username_availability(username)
+    return response
+
 
 @app.get("/logout")
 async def logout(request: Request):
@@ -103,7 +105,7 @@ async def gethome(request: Request):
    if status:
         if verbose:
             print("positive status")
-        if role == "admin" and request.cookies.get("origin") == "adminlogin":
+        if role == "admin" and request.cookies.get("origin") == "adminlogin":                       # to be moved ito /adminlogin endpoints and validated for proper access level for the given login endpoint before proceeding to /home
             if verbose:
                 print("detected login as admin")
             package = await adminhome(request)
@@ -111,6 +113,8 @@ async def gethome(request: Request):
                 print("package", package)
         elif role == "user" and request.cookies.get("origin") == "userlogin":
             package = await userhome(request)
+        else:
+            return pages.TemplateResponse("invalid.html", {"request": request, "error":"Unknown role"})
         return package
    else:
        return pages.TemplateResponse("invalid.html", {"request": request, "error":role})

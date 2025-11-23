@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
-
 verbose = True
 load_dotenv()
 
@@ -85,6 +84,14 @@ async def get_access_level(session_id):
 async def delete_session_id(session_id):
     async with conn_pool.acquire() as connection:
         await connection.execute("DELETE FROM sessions WHERE session_id = $1", session_id)
+
+
+async def check_username_availability(username):
+    async with conn_pool.acquire() as connection:
+        print("db_handler is checking availability for", username)
+        rows = await connection.fetchrow("SELECT username from users WHERE username = $1;", username)
+        return {"available": not rows} 
+
 
 
 # hashing password with bcrypt to store passwords securely on the DB
