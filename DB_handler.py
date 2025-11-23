@@ -71,8 +71,6 @@ async def register_user(email,username,password,access_level):
 
 
 async def get_access_level(session_id):
-    if verbose:
-        print("getting access level for/home endpoint")
     async with conn_pool.acquire() as connection:
         row = await connection.fetchrow("SELECT u.access FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_id = $1;", session_id)
         if row:
@@ -88,7 +86,6 @@ async def delete_session_id(session_id):
 
 async def check_username_availability(username):
     async with conn_pool.acquire() as connection:
-        print("db_handler is checking availability for", username)
         rows = await connection.fetchrow("SELECT username from users WHERE username = $1;", username)
         return {"available": not rows} 
 

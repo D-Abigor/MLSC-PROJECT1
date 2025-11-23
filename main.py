@@ -7,8 +7,6 @@ from contextlib import asynccontextmanager
 
 verbose = False
 
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await DB_handler.init_conn_pool_and_cleaner()                       ## postgress module and its helpers init
@@ -16,8 +14,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 pages = Jinja2Templates(directory="frontend")
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,31 +24,21 @@ app.add_middleware(
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    if verbose:
-        print("executing middleware") 
     public_endpoint = ["/", "/userlogin", "/adminlogin", "/register", "/invalid", "/docs", "/redoc", "/docs/oauth2-redirect", "/openapi.json", "/checkavailability"]
 
     if request.url.path in public_endpoint:
         return await call_next(request)
     
     id = request.cookies.get("session_id")
-    if verbose:
-        print("cookie detected by middleware:", id)
     if not id:
         return pages.TemplateResponse("invalid.html", {"request": request, "error":"invalid credentials"})
     
     status = await DB_handler.validate_session_id(id)
 
     if status:
-        if verbose:
-            print("middleware cookie validation pass!")
         response = await call_next(request)
-        if verbose:
-            print(response)
         return response
     else:
-        if verbose:
-            print("middleware cookie validation fail")
         return pages.TemplateResponse("invalid.html", {"request": request, "error":"invalid session id"})
     
 
@@ -91,26 +77,13 @@ async def logout(request: Request):
     return response
 
 @app.get("/home")
-async def gethome(request: Request):
-   if verbose:
-       print("at home")              
-
+async def gethome(request: Request):            
    id = request.cookies.get("session_id")
-   if verbose:
-       print("cookie detected inside home", id)
    status, role = await DB_handler.get_access_level(id)
-   if verbose:
-       print("status and role:",status,role)
 
    if status:
-        if verbose:
-            print("positive status")
         if role == "admin" and request.cookies.get("origin") == "adminlogin":                       # to be moved ito /adminlogin endpoints and validated for proper access level for the given login endpoint before proceeding to /home
-            if verbose:
-                print("detected login as admin")
             package = await adminhome(request)
-            if verbose:
-                print("package", package)
         elif role == "user" and request.cookies.get("origin") == "userlogin":
             package = await userhome(request)
         else:
@@ -139,8 +112,6 @@ async def adminlogin_post(request: Request):
     data = await request.json()
 
     status, session_id = await DB_handler.get_session_id(data.get("username"), data.get("password"))
-    if verbose:
-        print(status, session_id)
     if status!=True:
         return pages.TemplateResponse("invalid.html", {"request": request, "error":"could not get session ID"})
     
@@ -163,9 +134,7 @@ async def register_post(request: Request):
 
 async def adminhome(request: Request):
     rows = await DB_handler.get_admin_landing()
-    users = [dict(row) for row in rows] 
-    if verbose:
-        print("users", users)        
+    users = [dict(row) for row in rows]      
     return pages.TemplateResponse(
         "adminhome.html",
         {"request": request, "users": users}
